@@ -287,32 +287,25 @@
           }
 
           const auth = window.firebaseAuth;
-          const { signInWithCustomToken, signInAnonymously, onAuthStateChanged } = window.firebaseImports;
+          const { signInAnonymously, onAuthStateChanged } = window.firebaseImports;
 
-          try {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
+          const unsubscribe = onAuthStateChanged(auth, async (currUser) => {
+            if (!currUser) {
+              try {
+                await signInAnonymously(auth);
+              } catch (error) {
+                console.error("익명 로그인 실패:", error);
+                if (isMounted) setIsFallbackMode(true);
+              }
             } else {
-              await signInAnonymously(auth);
-            }
-          } catch (error) {
-            console.error("익명 로그인 실패:", error);
-            if (isMounted) {
-              setIsFallbackMode(true);
-              setItems(getLocalItems());
-              setLoading(false);
-            }
-            return;
-          }
-
-          const unsubscribe = onAuthStateChanged(auth, (currUser) => {
-            if (isMounted) {
-              setUser(currUser);
-              if (currUser && currUser.email) {
-                setIsFallbackMode(false);
-                setIsAdmin(currUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
-              } else {
-                setIsAdmin(false);
+              if (isMounted) {
+                setUser(currUser);
+                if (!currUser.isAnonymous && currUser.email) {
+                  setIsFallbackMode(false);
+                  setIsAdmin(currUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+                } else {
+                  setIsAdmin(false);
+                }
               }
             }
           });
