@@ -1024,7 +1024,7 @@
                     <textarea rows="3" placeholder="스크래치, 부착된 캐릭터 키링 등 특징을 자세히 기재하면 더 쉽게 찾을 수 객있습니다." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={`w-full p-2.5 rounded-lg border text-base sm:text-sm ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`} required></textarea>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1">사진 파일 첨부 (대용량 사진 자동최적화 지원)</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">사진 파일 첨부</label>
                     <div className={`mt-1 flex items-center justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-300 bg-slate-50'}`}>
                       <div className="space-y-1 text-center">
                         {formData.imagePreview ? (
@@ -1049,7 +1049,7 @@
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 mb-1">작성자 이름(별명) *</label>
+                      <label className="block text-xs font-bold text-slate-400 mb-1">작성자 이름 *</label>
                       <input type="text" placeholder="예: 2학년 이철수" value={formData.reporter} onChange={(e) => setFormData({ ...formData, reporter: e.target.value })} className={`w-full p-2.5 rounded-lg border text-base sm:text-sm ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`} required />
                     </div>
                     <div>
