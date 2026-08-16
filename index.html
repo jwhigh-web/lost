@@ -296,16 +296,13 @@
               await signInAnonymously(auth);
             }
           } catch (error) {
-            try {
-              await signInAnonymously(auth);
-            } catch (err2) {
-              if (isMounted) {
-                setIsFallbackMode(true);
-                setItems(getLocalItems());
-                setLoading(false);
-              }
-              return;
+            console.error("익명 로그인 실패:", error);
+            if (isMounted) {
+              setIsFallbackMode(true);
+              setItems(getLocalItems());
+              setLoading(false);
             }
+            return;
           }
 
           const unsubscribe = onAuthStateChanged(auth, (currUser) => {
@@ -359,6 +356,7 @@
             setLoading(false);
           },
           (error) => {
+            console.error("Firestore 데이터 불러오기 실패:", error);
             setIsFallbackMode(true);
             setItems(getLocalItems());
             setLoading(false);
@@ -375,14 +373,21 @@
         }
         try {
           const { signInWithPopup, GoogleAuthProvider, signOut } = window.firebaseImports;
+          const auth = window.firebaseAuth;
+          
+          // 핵심 수정: 현재 익명 로그인 상태라면 로그아웃을 먼저 진행합니다.
+          // (익명 상태에서 구글 팝업을 띄우려 할 때 발생하는 충돌 방지)
+          if (auth.currentUser && auth.currentUser.isAnonymous) {
+             await signOut(auth);
+          }
+
           const provider = new GoogleAuthProvider();
           
-          // 팝업 차단 방지 및 모바일 호환성 개선을 위해 힌트 추가
           provider.setCustomParameters({
             prompt: 'select_account'
           });
 
-          const result = await signInWithPopup(window.firebaseAuth, provider);
+          const result = await signInWithPopup(auth, provider);
           const loggedInUser = result.user;
 
           if (ALLOWED_SCHOOL_DOMAIN && loggedInUser.email) {
@@ -391,7 +396,7 @@
             const allowedDomainClean = ALLOWED_SCHOOL_DOMAIN.replace('@', '').toLowerCase();
             
             if (userEmail !== ADMIN_EMAIL.toLowerCase() && userDomain !== allowedDomainClean) {
-              await signOut(window.firebaseAuth);
+              await signOut(auth);
               showToast(`학교 계정(${ALLOWED_SCHOOL_DOMAIN})으로만 로그인할 수 있습니다. (입력된 계정: ${loggedInUser.email})`, 'error');
               return;
             }
@@ -399,14 +404,20 @@
 
           showToast('학교 계정으로 성공적으로 인증되었습니다! [인증된 학생] 배지가 부여됩니다.', 'success');
         } catch (error) {
-          console.error("구글 로그인 에러:", error);
+          console.error("구글 로그인 에러 상세 로그:", error);
           if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request' || error.message?.includes('popup')) {
             showToast('브라우저에서 로그인 팝업이 차단되었거나 취소되었습니다. 브라우저 설정에서 팝업 차단을 해제해 주세요.', 'error');
           } else if (error.code === 'auth/unauthorized-domain') {
             showToast('현재 도메인이 Firebase 인증 허용 도메인에 등록되어 있지 않습니다.', 'error');
           } else {
-            showToast('로그인에 실패했습니다. 다시 시도해 주세요.', 'error');
+            showToast(`로그인에 실패했습니다: ${error.message}`, 'error');
           }
+          
+          // 로그인 실패 시 다시 익명 로그인으로 복구
+          try {
+             const { signInAnonymously } = window.firebaseImports;
+             await signInAnonymously(window.firebaseAuth);
+          } catch(e) {}
         }
       };
 
@@ -493,6 +504,7 @@
           setIsRegisterOpen(false);
           setFormData({ type: 'lost', title: '', category: '전자기기', location: '', date: new Date().toISOString().split('T')[0], description: '', reporter: '', password: '', phone: '', imagePreview: '' });
         } catch (error) {
+          console.error("문서 쓰기 실패:", error);
           showToast('클라우드에 전송하지 못했습니다. 로컬 저장을 이용해주세요.', 'error');
         } finally {
           setIsSyncing(false);
@@ -564,6 +576,7 @@
           setVerifyAction(null);
           setVerifyPassword('');
         } catch (err) {
+          console.error("문서 업데이트/삭제 실패:", err);
           showToast('수행 중 서버 장애가 발생했습니다.', 'error');
         } finally {
           setIsSyncing(false);
@@ -1014,7 +1027,7 @@
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">상세 설명 및 특징 *</label>
-                    <textarea rows="3" placeholder="스크래치, 부착된 캐릭터 키링 등 특징을 자세히 기재하면 더 쉽게 찾을 수 있습니다." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={`w-full p-2.5 rounded-lg border text-base sm:text-sm ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`} required></textarea>
+                    <textarea rows="3" placeholder="스크래치, 부착된 캐릭터 키링 등 특징을 자세히 기재하면 더 쉽게 찾을 수 객있습니다." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={`w-full p-2.5 rounded-lg border text-base sm:text-sm ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`} required></textarea>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">사진 파일 첨부 (대용량 사진 자동최적화 지원)</label>
