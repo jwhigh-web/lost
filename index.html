@@ -376,6 +376,12 @@
         try {
           const { signInWithPopup, GoogleAuthProvider, signOut } = window.firebaseImports;
           const provider = new GoogleAuthProvider();
+          
+          // 팝업 차단 방지 및 모바일 호환성 개선을 위해 힌트 추가
+          provider.setCustomParameters({
+            prompt: 'select_account'
+          });
+
           const result = await signInWithPopup(window.firebaseAuth, provider);
           const loggedInUser = result.user;
 
@@ -393,8 +399,14 @@
 
           showToast('학교 계정으로 성공적으로 인증되었습니다! [인증된 학생] 배지가 부여됩니다.', 'success');
         } catch (error) {
-          console.error(error);
-          showToast('로그인 팝업이 차단되었거나 실패했습니다.', 'error');
+          console.error("구글 로그인 에러:", error);
+          if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request' || error.message?.includes('popup')) {
+            showToast('브라우저에서 로그인 팝업이 차단되었거나 취소되었습니다. 브라우저 설정에서 팝업 차단을 해제해 주세요.', 'error');
+          } else if (error.code === 'auth/unauthorized-domain') {
+            showToast('현재 도메인이 Firebase 인증 허용 도메인에 등록되어 있지 않습니다.', 'error');
+          } else {
+            showToast('로그인에 실패했습니다. 다시 시도해 주세요.', 'error');
+          }
         }
       };
 
@@ -626,14 +638,16 @@
                     <span className="hidden sm:inline">{isAdmin ? '관리자 로그아웃' : '학생 로그아웃'}</span>
                   </button>
                 ) : (
-                  <button
-                    onClick={handleGoogleLogin}
-                    className="px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center space-x-1 shadow-sm"
-                    title="학교 계정 간편 로그인"
-                  >
-                    <Icon name="log-in" className="w-4 h-4" />
-                    <span className="hidden sm:inline">구글 로그인</span>
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={handleGoogleLogin}
+                      className="px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center space-x-1 shadow-sm"
+                      title="학교 계정 간편 로그인"
+                    >
+                      <Icon name="log-in" className="w-4 h-4" />
+                      <span className="hidden sm:inline">구글 로그인</span>
+                    </button>
+                  </div>
                 )}
 
                 <button
